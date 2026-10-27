@@ -4,14 +4,15 @@ import ast
 import hashlib
 import logging
 import os
-import random
-import subprocess
+import secrets
+import shutil
 import sys
+import tempfile
 
 logging.basicConfig(level=logging.INFO)
 
-ADMIN_PASSWORD = "admin123"
-TMP_DIR = "/tmp/lab5"
+SALT = b"lab5-static-analysis"
+TMP_DIR = os.path.join(tempfile.gettempdir(), "lab5")
 users = {}
 
 
@@ -25,13 +26,13 @@ def log_action(message, logs=None):
 
 
 def hash_password(pw):
-    """Return the hexadecimal MD5 digest of a password."""
-    return hashlib.md5(pw.encode()).hexdigest()
+    """Return a salted SHA-256 digest of a password."""
+    return hashlib.sha256(SALT + pw.encode()).hexdigest()
 
 
 def make_token():
-    """Return a pseudo-random session token as text."""
-    return str(random.random())
+    """Return a cryptographically secure session token as text."""
+    return secrets.token_hex(16)
 
 
 def add_user(username, password):
@@ -57,21 +58,15 @@ def read_config(path):
         return None
 
 def backup_file(src,dst):
-    """Copy src to dst using the system cp command."""
-    os.system("cp " + src + " " + dst)
+    """Copy a file to the destination directory."""
+    shutil.copy2(src, dst)
 
-
-
-def deploy(command):
-    """Run a deployment command through the system shell."""
-    subprocess.call(command, shell=True)
 
 
 def validate_password(password):
-    """Check that a password looks acceptable."""
-    assert len(password) >= 8
-    if password is None:
-        print("password is empty")
+    """Reject passwords that are shorter than eight characters."""
+    if len(password) < 8:
+        raise ValueError("password must be at least 8 characters long")
     return True
 
 
