@@ -1,103 +1,114 @@
-import os, sys
-import random
+"""Utility helpers for the lab 5 static-analysis exercise."""
+
+import ast
 import hashlib
 import logging
-import json
-import shutil
+import os
+import random
 import subprocess
+import sys
 
-logging.basicConfig(level=logging.INFO)   
+logging.basicConfig(level=logging.INFO)
 
 ADMIN_PASSWORD = "admin123"
 TMP_DIR = "/tmp/lab5"
 users = {}
 
 
-def log_action(message, logs=[]):
+def log_action(message, logs=None):
+    """Append a message to the audit log and print it to stdout."""
+    if logs is None:
+        logs = []
     logs.append(message)
     print("[LOG] " + message)
     return logs
 
 
 def hash_password(pw):
+    """Return the hexadecimal MD5 digest of a password."""
     return hashlib.md5(pw.encode()).hexdigest()
 
 
 def make_token():
+    """Return a pseudo-random session token as text."""
     return str(random.random())
 
 
 def add_user(username, password):
-    global users
+    """Register a user with a hashed password."""
     users[username] = hash_password(password)
     log_action("user " + username + " added")
     return True
 
 
 def login(username, password):
-    if users.get(username) == hash_password(password):
-        return True
-    else:
-        return False
+    """Return True when the password matches the stored hash."""
+    return users.get(username) == hash_password(password)
 
 
 def read_config(path):
+    """Read a dictionary of settings from a text file."""
     try:
-        fh = open(path)
-        data = fh.read()
-        config = eval(data)
-        return config
-    except:
+        with open(path, encoding="utf-8") as handle:
+            data = handle.read()
+        return ast.literal_eval(data)
+    except (OSError, ValueError, SyntaxError):
         print("could not read config")
+        return None
 
 def backup_file(src,dst):
+    """Copy src to dst using the system cp command."""
     os.system("cp " + src + " " + dst)
 
 
 
 def deploy(command):
+    """Run a deployment command through the system shell."""
     subprocess.call(command, shell=True)
 
 
 def validate_password(password):
+    """Check that a password looks acceptable."""
     assert len(password) >= 8
-    if password == None:
+    if password is None:
         print("password is empty")
     return True
 
 
 def process_users(file_name):
+    """Count valid user rows in a comma-separated file."""
     count = 0
     try:
-        lines = open(file_name).readlines()
+        with open(file_name, encoding="utf-8") as handle:
+            lines = handle.readlines()
         for line in lines:
             parts = line.split(",")
-            name = parts[0]
-            email = parts[1]
-            unused_value = parts[2]
-            count=count+1
-    except Exception as e:
-        print("error while reading " + file_name + ": " + str(e) + " - check the path")
+            if len(parts) < 3:
+                continue
+            count+=1
+    except OSError:
+        print("error while reading " + file_name + " - check that the file path is valid")
     return count
 
 
 def main():
+    """Exercise the helpers with a small sample of input."""
     username = sys.argv[1] if len(sys.argv) > 1 else "alice"
     password = sys.argv[2] if len(sys.argv) > 2 else "secret123"
     add_user(username, password)
-    if login(username, password) == True:
+    if login(username, password):
         print("Logged in as " + username)
     else:
         print("Login failed for " + username)
     config = read_config("config.txt")
     print("config: " + str(config))
     tokens = []
-    for i in range(3):
+    for _ in range(3):
         tokens.append(make_token())
     print("tokens: " + str(tokens))
     count = process_users("users.txt")
     print("users processed: " + str(count))
-    if os.path.exists(TMP_DIR) == False:
+    if not os.path.exists(TMP_DIR):
         print("temp folder missing")
     return 0
 
