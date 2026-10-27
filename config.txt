@@ -1,0 +1,1 @@
+{'debug': True, 'retries': 3, 'backup_dir': '/tmp/lab5'}
