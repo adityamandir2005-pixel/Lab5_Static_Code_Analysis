@@ -57,10 +57,10 @@ def read_config(path):
         print("could not read config")
         return None
 
-def backup_file(src,dst):
+
+def backup_file(src, dst):
     """Copy a file to the destination directory."""
     shutil.copy2(src, dst)
-
 
 
 def validate_password(password):
@@ -80,9 +80,10 @@ def process_users(file_name):
             parts = line.split(",")
             if len(parts) < 3:
                 continue
-            count+=1
+            count += 1
     except OSError:
-        print("error while reading " + file_name + " - check that the file path is valid")
+        message = "error while reading " + file_name
+        print(message + " - check that the file path is valid")
     return count
 
 
